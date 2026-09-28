@@ -84,8 +84,23 @@ final class MainViewController: UIViewController {
         super.viewDidLoad()
         setupBackground()
         setupLayout()
+        setupKeyboardDismiss() // <--- Добавили скрытие клавиатуры
         loadInitialData()
         updateStats()
+    }
+
+    // Настраиваем делегат поля ввода и TapGesture:
+    private func setupKeyboardDismiss() {
+        searchTextField.delegate = self
+        searchTextField.returnKeyType = .done
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false // Важно: чтобы не блокировать тапы по ячейкам!
+        view.addGestureRecognizer(tapGesture)
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -315,8 +330,9 @@ final class MainViewController: UIViewController {
     
     // MARK: - Actions
     private func presentKitchenGame(for restaurant: RestaurantModel) {
-        let gameVC = KitchenGameViewController(restaurant: restaurant)
-        present(gameVC, animated: true)
+        let levelsVC = LevelsViewController(restaurant: restaurant)
+        levelsVC.modalPresentationStyle = .fullScreen
+        present(levelsVC, animated: true)
     }
 }
 
@@ -368,5 +384,13 @@ extension MainViewController: UICollectionViewDelegate, UICollectionViewDataSour
             collectionView.reloadSections(IndexSet(integer: 0))
             applyFilter()
         }
+    }
+}
+
+// MARK: - UITextFieldDelegate
+extension MainViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
     }
 }

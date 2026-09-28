@@ -5,64 +5,66 @@ final class KitchenGameViewController: UIViewController {
 
     // MARK: - Properties
     private let restaurant: RestaurantModel
+    private let currentLevel: Int
+    
     private var requiredIngredients: [String] = []
-    private var currentIngredientIndex = 0
-    private var timeRemaining: Int = 15
+    private var selectedIngredients: [String] = []
+    private var timeRemaining: Int
     private var timer: Timer?
 
     // MARK: - UI Components
-    private let cardContainerView: UIView = {
+    private let topBarView: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 28
-        view.layer.shadowColor = UIColor.black.cgColor
-        view.layer.shadowOpacity = 0.1
-        view.layer.shadowRadius = 16
-        view.layer.shadowOffset = CGSize(width: 0, height: 8)
         return view
     }()
 
-    private let headerBackgroundView: UIView = {
-        let view = UIView()
-        view.layer.cornerRadius = 20
-        return view
+    private lazy var backButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .bold)
+        button.setImage(UIImage(systemName: "chevron.left.circle.fill", withConfiguration: config), for: .normal)
+        button.tintColor = .white
+        button.addTarget(self, action: #selector(handleBack), for: .touchUpInside)
+        return button
     }()
 
-    private let titleLabel: UILabel = {
+    private let levelTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 22, weight: .bold)
-        label.textColor = UIColor(red: 0.12, green: 0.10, blue: 0.16, alpha: 1.0)
+        label.font = .systemFont(ofSize: 20, weight: .heavy)
+        label.textColor = .white
         label.textAlignment = .center
         return label
     }()
 
     private let timerLabel: UILabel = {
         let label = UILabel()
-        label.font = .monospacedDigitSystemFont(ofSize: 16, weight: .bold)
-        label.textColor = .systemRed
+        label.font = .monospacedDigitSystemFont(ofSize: 28, weight: .black)
+        label.textColor = .white
         label.textAlignment = .center
         return label
     }()
 
     private let progressBar: UIProgressView = {
         let progress = UIProgressView(progressViewStyle: .bar)
-        progress.progressTintColor = UIColor(red: 0.20, green: 0.68, blue: 0.40, alpha: 1.0)
-        progress.trackTintColor = UIColor.systemGray5
-        progress.layer.cornerRadius = 4
+        progress.progressTintColor = UIColor.systemGreen
+        progress.trackTintColor = UIColor.white.withAlphaComponent(0.3)
+        progress.layer.cornerRadius = 6
         progress.clipsToBounds = true
         return progress
     }()
 
     private let recipeCardView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.95, alpha: 1.0)
-        view.layer.cornerRadius = 16
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 20
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOpacity = 0.15
+        view.layer.shadowRadius = 12
         return view
     }()
 
     private let recipeTitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "INCOMING ORDER"
+        label.text = "ORDER RECIPE"
         label.font = .systemFont(ofSize: 12, weight: .black)
         label.textColor = .systemGray
         label.textAlignment = .center
@@ -71,35 +73,36 @@ final class KitchenGameViewController: UIViewController {
 
     private let recipeTextLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 18, weight: .bold)
-        label.textColor = UIColor(red: 0.12, green: 0.10, blue: 0.16, alpha: 1.0)
+        label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.textColor = .darkText
         label.textAlignment = .center
         label.numberOfLines = 0
         return label
     }()
 
-    private let ingredientsStackView: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.distribution = .fillEqually
-        stack.spacing = 12
-        return stack
+    // Используем UICollectionView для сетки ингредиентов (до 6-8 кнопок)
+    private lazy var ingredientsCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.minimumInteritemSpacing = 12
+        layout.minimumLineSpacing = 12
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        cv.backgroundColor = .clear
+        cv.delegate = self
+        cv.dataSource = self
+        cv.register(IngredientCell.self, forCellWithReuseIdentifier: "IngredientCell")
+        return cv
     }()
 
-    private lazy var closeButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-        button.tintColor = .systemGray3
-        button.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
-        return button
-    }()
+    private var availableOptions: [String] = []
 
     // MARK: - Init
-    init(restaurant: RestaurantModel) {
+    init(restaurant: RestaurantModel, level: Int) {
         self.restaurant = restaurant
+        self.currentLevel = level
+        // Сложность: с каждым уровнем времени меньше!
+        self.timeRemaining = max(8, 20 - (level / 10))
         super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .overCurrentContext
-        modalTransitionStyle = .crossDissolve
+        modalPresentationStyle = .fullScreen
     }
 
     required init?(coder: NSCoder) {
@@ -111,119 +114,107 @@ final class KitchenGameViewController: UIViewController {
         super.viewDidLoad()
         setupBackground()
         setupLayout()
-        generateNewOrder()
+        setupGameForLevel()
         startTimer()
     }
 
-    // MARK: - Setup
     private func setupBackground() {
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        view.backgroundColor = restaurant.headerBackgroundColor // Цветовая гамма ресторана на весь экран
     }
 
     private func setupLayout() {
-        view.addSubview(cardContainerView)
-        cardContainerView.addSubview(headerBackgroundView)
-        cardContainerView.addSubview(closeButton)
-        cardContainerView.addSubview(titleLabel)
-        cardContainerView.addSubview(timerLabel)
-        cardContainerView.addSubview(progressBar)
-        cardContainerView.addSubview(recipeCardView)
+        view.addSubview(topBarView)
+        topBarView.addSubview(backButton)
+        topBarView.addSubview(levelTitleLabel)
+        
+        view.addSubview(timerLabel)
+        view.addSubview(progressBar)
+        view.addSubview(recipeCardView)
         
         recipeCardView.addSubview(recipeTitleLabel)
         recipeCardView.addSubview(recipeTextLabel)
         
-        cardContainerView.addSubview(ingredientsStackView)
+        view.addSubview(ingredientsCollectionView)
 
-        cardContainerView.snp.makeConstraints { make in
+        topBarView.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
+            make.leading.trailing.equalToSuperview().inset(16)
+            make.height.equalTo(44)
+        }
+
+        backButton.snp.makeConstraints { make in
+            make.leading.centerY.equalToSuperview()
+            make.size.equalTo(36)
+        }
+
+        levelTitleLabel.snp.makeConstraints { make in
             make.center.equalToSuperview()
-            make.leading.trailing.equalToSuperview().inset(24)
-        }
-
-        headerBackgroundView.snp.makeConstraints { make in
-            make.top.leading.trailing.equalToSuperview().inset(12)
-            make.height.equalTo(60)
-        }
-
-        headerBackgroundView.backgroundColor = restaurant.headerBackgroundColor
-
-        closeButton.snp.makeConstraints { make in
-            make.top.trailing.equalToSuperview().inset(20)
-            make.size.equalTo(28)
-        }
-
-        titleLabel.snp.makeConstraints { make in
-            make.center.equalTo(headerBackgroundView)
         }
 
         timerLabel.snp.makeConstraints { make in
-            make.top.equalTo(headerBackgroundView.snp.bottom).offset(16)
+            make.top.equalTo(topBarView.snp.bottom).offset(20)
             make.centerX.equalToSuperview()
         }
 
         progressBar.snp.makeConstraints { make in
             make.top.equalTo(timerLabel.snp.bottom).offset(12)
-            make.leading.trailing.equalToSuperview().inset(24)
-            make.height.equalTo(8)
+            make.leading.trailing.equalToSuperview().inset(32)
+            make.height.equalTo(12)
         }
 
         recipeCardView.snp.makeConstraints { make in
-            make.top.equalTo(progressBar.snp.bottom).offset(16)
+            make.top.equalTo(progressBar.snp.bottom).offset(24)
             make.leading.trailing.equalToSuperview().inset(24)
-            make.height.equalTo(90)
+            make.height.equalTo(120)
         }
 
         recipeTitleLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(12)
+            make.top.equalToSuperview().offset(16)
             make.centerX.equalToSuperview()
         }
 
         recipeTextLabel.snp.makeConstraints { make in
             make.center.equalToSuperview().offset(8)
-            make.leading.trailing.equalToSuperview().inset(12)
+            make.leading.trailing.equalToSuperview().inset(16)
         }
 
-        ingredientsStackView.snp.makeConstraints { make in
-            make.top.equalTo(recipeCardView.snp.bottom).offset(20)
+        ingredientsCollectionView.snp.makeConstraints { make in
+            make.top.equalTo(recipeCardView.snp.bottom).offset(32)
             make.leading.trailing.equalToSuperview().inset(24)
-            make.height.equalTo(64)
-            make.bottom.equalToSuperview().inset(24)
+            make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).inset(20)
         }
 
-        titleLabel.text = restaurant.name
+        levelTitleLabel.text = "\(restaurant.name) — Level \(currentLevel)"
     }
 
     // MARK: - Game Logic
-    private func generateNewOrder() {
-        let availableIngredients = ["🍕 Dough", "🧀 Cheese", "🥩 Sauce", "🍗 Wings", "🔥 Spice"]
-        requiredIngredients = Array(availableIngredients.shuffled().prefix(3))
-        currentIngredientIndex = 0
+    private func setupGameForLevel() {
+        let allIngredients = ["🍕 Dough", "🧀 Cheese", "🥩 Sauce", "🍗 Wings", "🔥 Spice", "🍄 Mushrooms", "🧅 Onion", "🍅 Tomato"]
+        
+        // Чем выше уровень, тем больше ингредиентов требуется для блюда (от 3 до 5)
+        let ingredientsCount = min(3 + (currentLevel / 25), 5)
+        requiredIngredients = Array(allIngredients.shuffled().prefix(ingredientsCount))
+        
+        // На экране показываем нужные + сгенерированные случайные (всего 6 вариантов)
+        var optionsSet = Set(requiredIngredients)
+        while optionsSet.count < 6 {
+            if let random = allIngredients.randomElement() {
+                optionsSet.insert(random)
+            }
+        }
+        availableOptions = Array(optionsSet).shuffled()
 
         recipeTextLabel.text = requiredIngredients.joined(separator: " + ")
         progressBar.setProgress(0, animated: false)
-
-        setupIngredientButtons(allOptions: availableIngredients.shuffled())
-    }
-
-    private func setupIngredientButtons(allOptions: [String]) {
-        ingredientsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
-        for item in allOptions.prefix(3) {
-            let button = UIButton(type: .system)
-            button.setTitle(item, for: .normal)
-            button.setTitleColor(UIColor(red: 0.12, green: 0.10, blue: 0.16, alpha: 1.0), for: .normal)
-            button.titleLabel?.font = .systemFont(ofSize: 13, weight: .bold)
-            button.backgroundColor = UIColor(red: 1.00, green: 0.78, blue: 0.23, alpha: 0.4)
-            button.layer.cornerRadius = 14
-            button.addTarget(self, action: #selector(handleIngredientTap(_:)), for: .touchUpInside)
-            ingredientsStackView.addArrangedSubview(button)
-        }
+        ingredientsCollectionView.reloadData()
     }
 
     private func startTimer() {
+        updateTimerLabel()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             self.timeRemaining -= 1
-            self.timerLabel.text = "⏱️ 00:\(String(format: "%02d", self.timeRemaining))"
+            self.updateTimerLabel()
 
             if self.timeRemaining <= 0 {
                 self.finishGame(success: false)
@@ -231,23 +222,30 @@ final class KitchenGameViewController: UIViewController {
         }
     }
 
-    @objc private func handleIngredientTap(_ sender: UIButton) {
-        guard let title = sender.title(for: .normal) else { return }
+    private func updateTimerLabel() {
+        timerLabel.text = "⏱️ 00:\(String(format: "%02d", max(0, timeRemaining)))"
+    }
 
-        let feedback = UIImpactFeedbackGenerator(style: .light)
+    private func handleIngredientSelection(_ ingredient: String) {
+        let feedback = UIImpactFeedbackGenerator(style: .medium)
         feedback.impactOccurred()
 
-        if requiredIngredients.contains(title) {
-            sender.isEnabled = false
-            sender.alpha = 0.4
-            currentIngredientIndex += 1
-
-            let progress = Float(currentIngredientIndex) / Float(requiredIngredients.count)
+        if requiredIngredients.contains(ingredient) && !selectedIngredients.contains(ingredient) {
+            selectedIngredients.append(ingredient)
+            
+            let progress = Float(selectedIngredients.count) / Float(requiredIngredients.count)
             progressBar.setProgress(progress, animated: true)
 
-            if currentIngredientIndex >= requiredIngredients.count {
+            if selectedIngredients.count >= requiredIngredients.count {
                 finishGame(success: true)
             }
+        } else {
+            // Штраф за ошибку: минус 2 секунды!
+            timeRemaining = max(0, timeRemaining - 2)
+            updateTimerLabel()
+            
+            let errorFeedback = UINotificationFeedbackGenerator()
+            errorFeedback.notificationOccurred(.error)
         }
     }
 
@@ -255,29 +253,88 @@ final class KitchenGameViewController: UIViewController {
         timer?.invalidate()
 
         if success {
-            KitchenManager.shared.addCoins(restaurant.baseReward)
-            let successFeedback = UINotificationFeedbackGenerator()
-            successFeedback.notificationOccurred(.success)
+            // Сохраняем прогресс уровня в UserDefaults
+            LevelManager.shared.completeLevel(currentLevel, for: restaurant.id)
+            KitchenManager.shared.addCoins(restaurant.baseReward * currentLevel)
 
-            let alert = UIAlertController(title: "Order Completed! 🎉", message: "You earned +\(restaurant.baseReward) Coins!", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Awesome!", style: .default, handler: { [weak self] _ in
+            let alert = UIAlertController(title: "Level \(currentLevel) Cleared! 🎉", message: "Great job chef! Next level unlocked.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Continue", style: .default, handler: { [weak self] _ in
                 self?.dismiss(animated: true)
             }))
             present(alert, animated: true)
         } else {
-            let errorFeedback = UINotificationFeedbackGenerator()
-            errorFeedback.notificationOccurred(.error)
-
-            let alert = UIAlertController(title: "Time's Up! ⏳", message: "The customer left. Try again next time!", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: { [weak self] _ in
+            let alert = UIAlertController(title: "Time's Up! ⏳", message: "Customer left unhappy. Try level \(currentLevel) again!", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Retry", style: .default, handler: { [weak self] _ in
+                self?.selectedIngredients.removeAll()
+                self?.timeRemaining = max(8, 20 - ((self?.currentLevel ?? 1) / 10))
+                self?.setupGameForLevel()
+                self?.startTimer()
+            }))
+            alert.addAction(UIAlertAction(title: "Exit", style: .cancel, handler: { [weak self] _ in
                 self?.dismiss(animated: true)
             }))
             present(alert, animated: true)
         }
     }
 
-    @objc private func handleClose() {
+    @objc private func handleBack() {
         timer?.invalidate()
         dismiss(animated: true)
+    }
+}
+
+// MARK: - UICollectionView Delegate & DataSource
+extension KitchenGameViewController: UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return availableOptions.count
+    }
+
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "IngredientCell", for: indexPath) as! IngredientCell
+        let item = availableOptions[indexPath.item]
+        let isSelected = selectedIngredients.contains(item)
+        cell.configure(title: item, isSelected: isSelected)
+        return cell
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let selected = availableOptions[indexPath.item]
+        handleIngredientSelection(selected)
+        collectionView.reloadItems(at: [indexPath])
+    }
+
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        let width = (collectionView.bounds.width - 12) / 2
+        return CGSize(width: width, height: 60)
+    }
+}
+
+// MARK: - IngredientCell
+final class IngredientCell: UICollectionViewCell {
+    private let titleLabel = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        contentView.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        contentView.layer.cornerRadius = 14
+        
+        titleLabel.font = .systemFont(ofSize: 15, weight: .bold)
+        titleLabel.textColor = .darkText
+        titleLabel.textAlignment = .center
+        
+        contentView.addSubview(titleLabel)
+        titleLabel.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func configure(title: String, isSelected: Bool) {
+        titleLabel.text = title
+        contentView.alpha = isSelected ? 0.3 : 1.0
+        isUserInteractionEnabled = !isSelected
     }
 }
