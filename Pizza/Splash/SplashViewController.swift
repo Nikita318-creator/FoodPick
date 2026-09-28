@@ -234,8 +234,8 @@ final class SplashViewController: UIViewController {
 
     // MARK: - Navigation
     private func showMainScreen() {
-        let mainVC = MainViewController()
-        setRootViewController(mainVC)
+        let tabBarController = MainTabBarController()
+        setRootViewController(tabBarController)
     }
 
     private func showWebScreen(with urlString: String) {
