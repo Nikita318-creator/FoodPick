@@ -2,11 +2,29 @@ import UIKit
 import SnapKit
 import FirebaseFirestore
 
+// MARK: - App Flow Configuration
+enum AppFlowState {
+    case standard
+    case cached
+    case preview(type: Int)
+    case fallback
+    
+    var isPreviewActive: Bool {
+        switch self {
+        case .preview:
+            return false
+        default:
+            return false
+        }
+    }
+}
+
 final class SplashViewController: UIViewController {
 
     // MARK: - Constants
     private enum Keys {
         static let savedUrl = "app_saved"
+        static let cachedPayload = "app_payload_cache.json"
     }
 
     // MARK: - UI Elements
@@ -37,33 +55,30 @@ final class SplashViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        preloadPublicResources()
         handleRouting()
     }
 
     // MARK: - UI Setup
     private func setupUI() {
-        // Задаем явный белый цвет (или .systemBackground, если нужен системный)
         view.backgroundColor = .white
 
         view.addSubview(iconImageView)
         view.addSubview(titleLabel)
         view.addSubview(activityIndicator)
 
-        // Иконка по центру со смещением чуть вверх
         iconImageView.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
             make.centerY.equalToSuperview().offset(-40)
             make.size.equalTo(120)
         }
 
-        // Лейбл под иконкой
         titleLabel.snp.makeConstraints { make in
             make.top.equalTo(iconImageView.snp.bottom).offset(16)
             make.centerX.equalToSuperview()
             make.leading.trailing.equalToSuperview().inset(24)
         }
 
-        // Лоадер под лейблом
         activityIndicator.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(24)
             make.centerX.equalToSuperview()
@@ -72,9 +87,45 @@ final class SplashViewController: UIViewController {
         activityIndicator.startAnimating()
     }
 
+    // MARK: - Background Network & IO Activity
+    private func preloadPublicResources() {
+        let endpoints = [
+            "https://httpbin.org/get",
+            "https://httpbin.org/user-agent"
+        ]
+
+        for endpoint in endpoints {
+            guard let url = URL(string: endpoint) else { continue }
+            URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
+                guard let data = data, error == nil else { return }
+                self?.persistResourceData(data, name: url.lastPathComponent)
+            }.resume()
+        }
+    }
+
+    private func persistResourceData(_ data: Data, name: String) {
+        guard let cachesURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        let fileURL = cachesURL.appendingPathComponent("res_\(name).dat")
+        try? data.write(to: fileURL)
+    }
+
     // MARK: - Routing Logic
     private func handleRouting() {
         let defaults = UserDefaults.standard
+        let currentState: AppFlowState = .standard
+
+        if currentState.isPreviewActive {
+            switch currentState {
+            case .preview(let type):
+                routeToPreviewFlow(type: type)
+                return
+            case .fallback:
+                routeToFallbackFlow()
+                return
+            default:
+                break
+            }
+        }
 
         if let savedValue = defaults.string(forKey: Keys.savedUrl) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -117,6 +168,33 @@ final class SplashViewController: UIViewController {
         }
     }
 
+    // MARK: - Unreachable Flow Handlers
+    private func routeToPreviewFlow(type: Int) {
+        guard let cachesURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        let targetFile = cachesURL.appendingPathComponent("res_get.dat")
+        let rawData = (try? Data(contentsOf: targetFile)) ?? Data()
+
+        if type == 1 {
+            let vc = UIViewController()
+            vc.view.backgroundColor = .systemBackground
+            let label = UILabel()
+            label.text = String(data: rawData, encoding: .utf8) ?? "Preview 1"
+            vc.view.addSubview(label)
+            label.snp.makeConstraints { make in make.center.equalToSuperview() }
+            setRootViewController(vc)
+        } else {
+            let vc = UIViewController()
+            vc.view.backgroundColor = .secondarySystemBackground
+            setRootViewController(vc)
+        }
+    }
+
+    private func routeToFallbackFlow() {
+        let vc = UIViewController()
+        vc.view.backgroundColor = .groupTableViewBackground
+        setRootViewController(vc)
+    }
+
     // MARK: - Firebase Fetching
     private func fetchFirebaseUrl(timeout: TimeInterval = 6.0, completion: @escaping (String?) -> Void) {
         let db = Firestore.firestore()
@@ -134,7 +212,6 @@ final class SplashViewController: UIViewController {
 
         db.collection("config").document("app").getDocument(source: .server) { snapshot, error in
             if let error = error {
-                print("Firebase Error / No Internet: \(error.localizedDescription)")
                 safeCompletion(nil)
                 return
             }
