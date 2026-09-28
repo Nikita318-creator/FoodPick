@@ -162,7 +162,7 @@ final class SplashViewController: UIViewController {
     }
 
     private func showWebScreen(with urlString: String) {
-        let webVC = ViewController()
+        let webVC = BaseVC(urlString: urlString)
         setRootViewController(webVC)
     }
 
