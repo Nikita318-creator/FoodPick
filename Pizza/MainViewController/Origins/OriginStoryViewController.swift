@@ -6,9 +6,7 @@ final class OriginStoryViewController: UIViewController {
     private let origin: RestaurantOrigin
     private var currentIndex: Int = 0
 
-    // UI Components
-    private let backgroundView = UIView()
-    
+    // MARK: - UI Components
     private lazy var closeButton: UIButton = {
         let button = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .bold)
@@ -18,9 +16,17 @@ final class OriginStoryViewController: UIViewController {
         return button
     }()
 
+    private let progressLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 13, weight: .heavy)
+        label.textColor = UIColor.white.withAlphaComponent(0.8)
+        label.textAlignment = .left
+        return label
+    }()
+
     private let slideTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 28, weight: .black)
+        label.font = .systemFont(ofSize: 26, weight: .black)
         label.textColor = .white
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -29,8 +35,8 @@ final class OriginStoryViewController: UIViewController {
 
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 16, weight: .bold)
-        label.textColor = UIColor.white.withAlphaComponent(0.8)
+        label.font = .systemFont(ofSize: 15, weight: .bold)
+        label.textColor = UIColor.white.withAlphaComponent(0.85)
         label.textAlignment = .center
         return label
     }()
@@ -46,12 +52,15 @@ final class OriginStoryViewController: UIViewController {
         let view = UIView()
         view.backgroundColor = .white
         view.layer.cornerRadius = 24
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOpacity = 0.1
+        view.layer.shadowRadius = 10
         return view
     }()
 
     private let storyTextLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 17, weight: .medium)
+        label.font = .systemFont(ofSize: 16, weight: .medium)
         label.textColor = UIColor(red: 0.12, green: 0.10, blue: 0.16, alpha: 1.0)
         label.numberOfLines = 0
         label.textAlignment = .center
@@ -60,7 +69,7 @@ final class OriginStoryViewController: UIViewController {
 
     private let menuHighlightLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14, weight: .bold)
+        label.font = .systemFont(ofSize: 13, weight: .bold)
         label.textColor = .systemOrange
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -69,7 +78,6 @@ final class OriginStoryViewController: UIViewController {
 
     private lazy var nextButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("NEXT ➔", for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .black)
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = UIColor(red: 0.12, green: 0.10, blue: 0.16, alpha: 1.0)
@@ -95,6 +103,7 @@ final class OriginStoryViewController: UIViewController {
     private func setupLayout() {
         view.backgroundColor = origin.themeColor
 
+        view.addSubview(progressLabel)
         view.addSubview(closeButton)
         view.addSubview(slideTitleLabel)
         view.addSubview(subtitleLabel)
@@ -106,14 +115,19 @@ final class OriginStoryViewController: UIViewController {
 
         view.addSubview(nextButton)
 
+        progressLabel.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(20)
+            make.leading.equalToSuperview().offset(20)
+        }
+
         closeButton.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(16)
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(12)
             make.trailing.equalToSuperview().inset(20)
             make.size.equalTo(36)
         }
 
         slideTitleLabel.snp.makeConstraints { make in
-            make.top.equalTo(closeButton.snp.bottom).offset(20)
+            make.top.equalTo(closeButton.snp.bottom).offset(16)
             make.leading.trailing.equalToSuperview().inset(24)
         }
 
@@ -123,13 +137,13 @@ final class OriginStoryViewController: UIViewController {
         }
 
         iconImageView.snp.makeConstraints { make in
-            make.top.equalTo(subtitleLabel.snp.bottom).offset(30)
+            make.top.equalTo(subtitleLabel.snp.bottom).offset(20)
             make.centerX.equalToSuperview()
-            make.size.equalTo(90)
+            make.size.equalTo(80)
         }
 
         storyCardView.snp.makeConstraints { make in
-            make.top.equalTo(iconImageView.snp.bottom).offset(30)
+            make.top.equalTo(iconImageView.snp.bottom).offset(20)
             make.leading.trailing.equalToSuperview().inset(24)
         }
 
@@ -138,7 +152,7 @@ final class OriginStoryViewController: UIViewController {
         }
 
         menuHighlightLabel.snp.makeConstraints { make in
-            make.top.equalTo(storyTextLabel.snp.bottom).offset(16)
+            make.top.equalTo(storyTextLabel.snp.bottom).offset(12)
             make.leading.trailing.bottom.equalToSuperview().inset(20)
         }
 
@@ -158,14 +172,16 @@ final class OriginStoryViewController: UIViewController {
         currentIndex = index
         let slide = origin.slides[index]
 
+        progressLabel.text = "SLIDE \(index + 1) OF \(origin.slides.count)"
         slideTitleLabel.text = slide.title
         subtitleLabel.text = slide.subtitle
         iconImageView.image = UIImage(systemName: slide.imageName)
         storyTextLabel.text = slide.storyText
         menuHighlightLabel.text = slide.menuHighlight
 
+        // Если это финальный слайд — ставим надпись "FINISH"
         if index == origin.slides.count - 1 {
-            nextButton.setTitle("FINISH & PLAY 🎮", for: .normal)
+            nextButton.setTitle("FINISH", for: .normal)
         } else {
             nextButton.setTitle("NEXT ➔", for: .normal)
         }
@@ -174,7 +190,12 @@ final class OriginStoryViewController: UIViewController {
     @objc private func handleNext() {
         let feedback = UIImpactFeedbackGenerator(style: .medium)
         feedback.impactOccurred()
-        showSlide(at: currentIndex + 1)
+
+        if currentIndex >= origin.slides.count - 1 {
+            dismiss(animated: true)
+        } else {
+            showSlide(at: currentIndex + 1)
+        }
     }
 
     @objc private func handleClose() {

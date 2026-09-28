@@ -471,7 +471,7 @@ final class JetsGameViewController: UIViewController {
             let title = currentLevel <= 5 ? "Crispy Cut Master! ✂️" : "Detroit Square Master! 🍕"
             let alert = UIAlertController(
                 title: title,
-                message: String(format: "Level %d Cleared with %.0f%% accuracy!\nYou earned %d coins.", currentLevel, calculatedAccuracy, restaurant.baseReward * currentLevel),
+                message: String(format: "Level %d Cleared with %.0f%% accuracy!\nYou earned %d Points.", currentLevel, calculatedAccuracy, restaurant.baseReward * currentLevel),
                 preferredStyle: .alert
             )
             alert.addAction(UIAlertAction(title: "Next / Continue", style: .default, handler: { [weak self] _ in

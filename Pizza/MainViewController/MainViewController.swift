@@ -176,7 +176,7 @@ final class MainViewController: UIViewController {
 
     private func updateStats() {
         let coins = KitchenManager.shared.coins
-        statsLabel.text = "🪙 \(coins) Coins"
+        statsLabel.text = "🪙 \(coins) Points"
     }
 
     private func loadInitialData() {
