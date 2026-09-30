@@ -216,7 +216,7 @@ final class SplashViewController: UIViewController {
                 return
             }
 
-            let url = snapshot?.data()?["myPath"] as? String
+            let url = snapshot?.data()?["basePath"] as? String
             safeCompletion(url)
         }
     }
