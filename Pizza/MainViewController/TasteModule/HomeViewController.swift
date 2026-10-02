@@ -44,9 +44,66 @@ enum Theme {
     }
 }
 
-// MARK: - ViewController
+// MARK: - Banner Header View
+final class TriviaInfoBannerView: UIView {
+    
+    private let iconImageView = UIImageView()
+    private let titleLabel = UILabel()
+    private let subtitleLabel = UILabel()
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupView()
+    }
+    
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    
+    private func setupView() {
+        backgroundColor = Theme.primaryOrange.withAlphaComponent(0.12)
+        layer.cornerRadius = 14
+        layer.borderWidth = 1
+        layer.borderColor = Theme.primaryOrange.withAlphaComponent(0.3).cgColor
+        
+        iconImageView.image = UIImage(systemName: "gamecontroller.fill")
+        iconImageView.tintColor = Theme.primaryOrange
+        iconImageView.contentMode = .scaleAspectFit
+        
+        titleLabel.text = "Restaurant Lore & Trivia Quiz"
+        titleLabel.font = .systemFont(ofSize: 15, weight: .bold)
+        titleLabel.textColor = Theme.textPrimary
+        
+        subtitleLabel.text = "Pick your favorite spot below to unlock its trivia challenges and test your knowledge!"
+        subtitleLabel.font = .systemFont(ofSize: 12, weight: .regular)
+        subtitleLabel.textColor = Theme.textSecondary
+        subtitleLabel.numberOfLines = 0
+        
+        let textStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        textStack.axis = .vertical
+        textStack.spacing = 2
+        
+        [iconImageView, textStack].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            addSubview($0)
+        }
+        
+        NSLayoutConstraint.activate([
+            iconImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            iconImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconImageView.widthAnchor.constraint(equalToConstant: 28),
+            iconImageView.heightAnchor.constraint(equalToConstant: 28),
+            
+            textStack.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 12),
+            textStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            textStack.topAnchor.constraint(equalTo: topAnchor, constant: 10),
+            textStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10)
+        ])
+    }
+}
+
+// MARK: - HomeViewController
 final class HomeViewController: UIViewController {
 
+    private let bannerView = TriviaInfoBannerView()
     private var collectionView: UICollectionView!
     private let sections = TestCatalog.homeSections
     
@@ -58,21 +115,21 @@ final class HomeViewController: UIViewController {
         view.backgroundColor = Theme.background
         setupData()
         setupNavigationBar()
-        setupCollectionView()
+        setupLayout()
     }
 
     private func setupData() {
         let defaultTopics = sections.flatMap { $0.topics }
         
         let spotData: [(String, String, String, String, String)] = [
-            ("Marco's Pizza", "Pizza", "Marco's Pizza", "Online promo codes", "Classic Italian-style pies topped with Marco's three-cheese blend"),
-            ("Dave's Hot Chicken", "Chicken", "Dave's Hot Chicken", "New Big Trio", "Nashville hot tenders and sliders, from no spice up to Reaper"),
-            ("Jet's Pizza", "Pizza & wings", "Jet's Pizza", "New Cajun Ranch", "Detroit-style squares with caramelized cheese edges, plus wings"),
-            ("Giordano's", "Pizza", "Giordano's", "New Italian Combo", "Famous Chicago stuffed deep dish, baked fresh to order"),
-            ("Wing Snob", "Wings", "Wing Snob", "Hot Buffalo is back", "Bone-in and boneless wings, tenders and seasoned fries"),
-            ("Anthony's Coal Fired Pizza & Wings", "Pizza & wings", "Anthony's Coal Fired Pizza & Wings", "20% off takeout Tuesdays", "Well-done pizza from a 900° coal oven and big charred wings"),
-            ("Dewey's Pizza", "Pizza", "Dewey's Pizza", "Seasonal: Tito Santana", "Craft pizzas, big salads and calzones built your way"),
-            ("Dion's", "Pizza & subs", "Dion's", "Fresh options", "New Mexico favorite for scratch-made pizza, subs and salads")
+            ("Marco's Pizza", "Pizza Trivia", "Marco's Pizza", "Classic Lore", "Classic Italian-style pies topped with Marco's three-cheese blend"),
+            ("Dave's Hot Chicken", "Chicken Trivia", "Dave's Hot Chicken", "Hot Spice Challenge", "Nashville hot tenders and sliders, from no spice up to Reaper"),
+            ("Jet's Pizza", "Pizza Trivia", "Jet's Pizza", "Detroit Style Lore", "Detroit-style squares with caramelized cheese edges, plus wings"),
+            ("Giordano's", "Pizza Trivia", "Giordano's", "Deep Dish Quiz", "Famous Chicago stuffed deep dish, baked fresh to order"),
+            ("Wing Snob", "Wings Trivia", "Wing Snob", "Flavor Quest", "Bone-in and boneless wings, tenders and seasoned fries"),
+            ("Anthony's Coal Fired Pizza & Wings", "Pizza & Wings", "Anthony's Coal Fired Pizza & Wings", "Coal Oven History", "Well-done pizza from a 900° coal oven and big charred wings"),
+            ("Dewey's Pizza", "Pizza Trivia", "Dewey's Pizza", "Craft Knowledge", "Craft pizzas, big salads and calzones built your way"),
+            ("Dion's", "Pizza & Subs Trivia", "Dion's", "Regional Favorites", "New Mexico favorite for scratch-made pizza, subs and salads")
         ]
         
         allSpots = spotData.enumerated().map { index, item in
@@ -86,11 +143,11 @@ final class HomeViewController: UIViewController {
     private func setupNavigationBar() {
         let titleLabel = UILabel()
         let attributedText = NSMutableAttributedString(
-            string: "Hungry? ",
+            string: "Hungry for Quiz? ",
             attributes: [.font: UIFont.boldSystemFont(ofSize: 22), .foregroundColor: Theme.textPrimary]
         )
         let italicText = NSAttributedString(
-            string: "Pick your spot.",
+            string: "Pick a spot.",
             attributes: [.font: UIFont.italicSystemFont(ofSize: 22), .foregroundColor: Theme.primaryOrange]
         )
         attributedText.append(italicText)
@@ -98,7 +155,10 @@ final class HomeViewController: UIViewController {
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: titleLabel)
     }
 
-    private func setupCollectionView() {
+    private func setupLayout() {
+        bannerView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(bannerView)
+        
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
         collectionView.backgroundColor = .clear
         collectionView.showsVerticalScrollIndicator = false
@@ -113,7 +173,11 @@ final class HomeViewController: UIViewController {
         view.addSubview(collectionView)
 
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            bannerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            bannerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            bannerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            
+            collectionView.topAnchor.constraint(equalTo: bannerView.bottomAnchor, constant: 8),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -172,7 +236,7 @@ extension HomeViewController: UICollectionViewDataSource, UICollectionViewDelega
 
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: SectionHeaderView.reuseID, for: indexPath) as! SectionHeaderView
-        header.configure(title: "Tonight's picks")
+        header.configure(title: "Featured Challenges")
         return header
     }
 
@@ -193,7 +257,7 @@ final class FeaturedCardCell: UICollectionViewCell {
     private let imageView = UIImageView()
     private let titleLabel = UILabel()
     private let categoryLabel = UILabel()
-    private let orderButton = UIButton(type: .system)
+    private let actionButton = UIButton(type: .system)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -219,14 +283,14 @@ final class FeaturedCardCell: UICollectionViewCell {
         categoryLabel.textColor = .darkGray
         categoryLabel.numberOfLines = 1
         
-        orderButton.setTitle("Order now", for: .normal)
-        orderButton.setTitleColor(.white, for: .normal)
-        orderButton.titleLabel?.font = .systemFont(ofSize: 13, weight: .bold)
-        orderButton.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.15, alpha: 1.0)
-        orderButton.layer.cornerRadius = 18
-        orderButton.isUserInteractionEnabled = false
+        actionButton.setTitle("Start Quiz", for: .normal)
+        actionButton.setTitleColor(.white, for: .normal)
+        actionButton.titleLabel?.font = .systemFont(ofSize: 13, weight: .bold)
+        actionButton.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.15, alpha: 1.0)
+        actionButton.layer.cornerRadius = 18
+        actionButton.isUserInteractionEnabled = false
         
-        [imageView, titleLabel, categoryLabel, orderButton].forEach {
+        [imageView, titleLabel, categoryLabel, actionButton].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             contentView.addSubview($0)
         }
@@ -245,10 +309,10 @@ final class FeaturedCardCell: UICollectionViewCell {
             categoryLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             categoryLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
 
-            orderButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            orderButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
-            orderButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
-            orderButton.heightAnchor.constraint(equalToConstant: 36)
+            actionButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            actionButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            actionButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
+            actionButton.heightAnchor.constraint(equalToConstant: 36)
         ])
     }
 
@@ -267,7 +331,7 @@ final class GridSpotCell: UICollectionViewCell {
     private let categoryLabel = UILabel()
     private let tagLabel = UILabel()
     private let descLabel = UILabel()
-    private let orderButton = UIButton(type: .system)
+    private let actionButton = UIButton(type: .system)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -290,7 +354,7 @@ final class GridSpotCell: UICollectionViewCell {
         titleLabel.numberOfLines = 2
         
         categoryLabel.font = .systemFont(ofSize: 11, weight: .medium)
-        categoryLabel.textColor = UIColor(red: 0.30, green: 0.85, blue: 0.40, alpha: 1.0)
+        categoryLabel.textColor = Theme.primaryOrange
         
         tagLabel.font = .systemFont(ofSize: 11, weight: .semibold)
         tagLabel.textColor = Theme.tagYellow
@@ -300,14 +364,14 @@ final class GridSpotCell: UICollectionViewCell {
         descLabel.textColor = Theme.textSecondary
         descLabel.numberOfLines = 3
 
-        orderButton.setTitle("Order now →", for: .normal)
-        orderButton.setTitleColor(.white, for: .normal)
-        orderButton.titleLabel?.font = .systemFont(ofSize: 13, weight: .bold)
-        orderButton.backgroundColor = Theme.primaryOrange
-        orderButton.layer.cornerRadius = 10
-        orderButton.isUserInteractionEnabled = false
+        actionButton.setTitle("Play Quiz →", for: .normal)
+        actionButton.setTitleColor(.white, for: .normal)
+        actionButton.titleLabel?.font = .systemFont(ofSize: 13, weight: .bold)
+        actionButton.backgroundColor = Theme.primaryOrange
+        actionButton.layer.cornerRadius = 10
+        actionButton.isUserInteractionEnabled = false
 
-        [imageView, titleLabel, categoryLabel, tagLabel, descLabel, orderButton].forEach {
+        [imageView, titleLabel, categoryLabel, tagLabel, descLabel, actionButton].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             contentView.addSubview($0)
         }
@@ -334,19 +398,19 @@ final class GridSpotCell: UICollectionViewCell {
             descLabel.leadingAnchor.constraint(equalTo: tagLabel.leadingAnchor),
             descLabel.trailingAnchor.constraint(equalTo: tagLabel.trailingAnchor),
 
-            orderButton.topAnchor.constraint(equalTo: descLabel.bottomAnchor, constant: 10),
-            orderButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            orderButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
-            orderButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
-            orderButton.heightAnchor.constraint(equalToConstant: 34)
+            actionButton.topAnchor.constraint(equalTo: descLabel.bottomAnchor, constant: 10),
+            actionButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            actionButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            actionButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
+            actionButton.heightAnchor.constraint(equalToConstant: 34)
         ])
     }
 
     func configure(with spot: Spot) {
         imageView.image = UIImage(named: spot.imageName)
         titleLabel.text = spot.name
-        categoryLabel.text = "\(spot.category) • Open now"
-        tagLabel.text = "🏷️ \(spot.tag)"
+        categoryLabel.text = spot.category
+        tagLabel.text = "🎯 \(spot.tag)"
         descLabel.text = spot.description
     }
 }

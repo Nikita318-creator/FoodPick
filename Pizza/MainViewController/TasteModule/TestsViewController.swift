@@ -132,7 +132,7 @@ final class TestCell: UICollectionViewCell {
         titleLabel.numberOfLines = 2
 
         subtitleLabel.font = .systemFont(ofSize: 13, weight: .regular)
-        subtitleLabel.textColor = .secondaryLabel
+        subtitleLabel.textColor = .white
         subtitleLabel.numberOfLines = 1
 
         textStack.axis = .vertical
