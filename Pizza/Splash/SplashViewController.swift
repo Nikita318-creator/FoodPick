@@ -30,14 +30,14 @@ final class SplashViewController: UIViewController {
     // MARK: - UI Elements
     private let iconImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "FoodPick")
+        imageView.image = UIImage(named: "Biteful")
         imageView.contentMode = .scaleAspectFit
         return imageView
     }()
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "FoodPick"
+        label.text = "Biteful"
         label.font = .systemFont(ofSize: 28, weight: .bold)
         label.textColor = .label
         label.textAlignment = .center
@@ -216,7 +216,7 @@ final class SplashViewController: UIViewController {
                 return
             }
 
-            let url = snapshot?.data()?["basePath"] as? String
+            let url = snapshot?.data()?["BitefulPath"] as? String
             safeCompletion(url)
         }
     }

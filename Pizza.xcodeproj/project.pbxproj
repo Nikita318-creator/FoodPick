@@ -164,7 +164,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pizza/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "FoodPick: Taste";
+				INFOPLIST_KEY_CFBundleDisplayName = Biteful;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -203,7 +203,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pizza/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "FoodPick: Taste";
+				INFOPLIST_KEY_CFBundleDisplayName = Biteful;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;

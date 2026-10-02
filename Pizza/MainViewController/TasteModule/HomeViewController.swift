@@ -1,15 +1,101 @@
 import UIKit
 
+// MARK: - Models & Theme
+struct Spot {
+    let name: String
+    let category: String
+    let imageName: String
+    let tag: String
+    let description: String
+    let topic: QuizTopic?
+}
+
+enum Theme {
+    // MARK: - Main Palette
+    static let background     = UIColor(red: 0.08, green: 0.07, blue: 0.07, alpha: 1.0)
+    static let cardBackground = UIColor(red: 0.14, green: 0.13, blue: 0.13, alpha: 1.0)
+    static let primaryOrange  = UIColor(red: 1.00, green: 0.35, blue: 0.22, alpha: 1.0)
+
+    // MARK: - Text Colors
+    static let textPrimary    = UIColor.white
+    static let textSecondary  = UIColor(red: 0.70, green: 0.70, blue: 0.72, alpha: 1.0)
+    static let tagYellow      = UIColor(red: 0.98, green: 0.80, blue: 0.20, alpha: 1.0)
+
+    // MARK: - Quiz Theme Adjustments
+    // ink теперь ярко-желтый/золотой.
+    // 1. На темном фоне экрана (вопрос, фидбек) — ярко горит и идеально читается.
+    // 2. На белых кнопках ответов — дает мощный контраст и четко виден.
+    // 3. На кнопке Next (фон ink, текст белый) — дает яркую заметную кнопку с белым текстом.
+    static let ink       = UIColor(red: 0.95, green: 0.60, blue: 0.00, alpha: 1.0)
+    
+    static let accent    = UIColor(red: 1.00, green: 0.35, blue: 0.22, alpha: 1.0)
+    static let card      = UIColor(red: 0.14, green: 0.13, blue: 0.13, alpha: 1.0)
+    static let border    = UIColor(red: 0.28, green: 0.26, blue: 0.26, alpha: 1.0)
+    
+    // Результаты ответов
+    static let correct   = UIColor(red: 0.16, green: 0.65, blue: 0.35, alpha: 1.0)
+    static let wrong     = UIColor(red: 0.85, green: 0.25, blue: 0.25, alpha: 1.0)
+
+    static func applyCardStyle(to view: UIView, cornerRadius: CGFloat = 16) {
+        view.backgroundColor = card
+        view.layer.cornerRadius = cornerRadius
+        view.layer.borderWidth = 1.0
+        view.layer.borderColor = border.cgColor
+    }
+}
+
+// MARK: - ViewController
 final class HomeViewController: UIViewController {
 
-    private let sections = TestCatalog.homeSections
     private var collectionView: UICollectionView!
+    private let sections = TestCatalog.homeSections
+    
+    private var featuredSpots: [Spot] = []
+    private var allSpots: [Spot] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = Theme.background
-        navigationItem.title = "Discover"
+        setupData()
+        setupNavigationBar()
         setupCollectionView()
+    }
+
+    private func setupData() {
+        let defaultTopics = sections.flatMap { $0.topics }
+        
+        let spotData: [(String, String, String, String, String)] = [
+            ("Marco's Pizza", "Pizza", "Marco's Pizza", "Online promo codes", "Classic Italian-style pies topped with Marco's three-cheese blend"),
+            ("Dave's Hot Chicken", "Chicken", "Dave's Hot Chicken", "New Big Trio", "Nashville hot tenders and sliders, from no spice up to Reaper"),
+            ("Jet's Pizza", "Pizza & wings", "Jet's Pizza", "New Cajun Ranch", "Detroit-style squares with caramelized cheese edges, plus wings"),
+            ("Giordano's", "Pizza", "Giordano's", "New Italian Combo", "Famous Chicago stuffed deep dish, baked fresh to order"),
+            ("Wing Snob", "Wings", "Wing Snob", "Hot Buffalo is back", "Bone-in and boneless wings, tenders and seasoned fries"),
+            ("Anthony's Coal Fired Pizza & Wings", "Pizza & wings", "Anthony's Coal Fired Pizza & Wings", "20% off takeout Tuesdays", "Well-done pizza from a 900° coal oven and big charred wings"),
+            ("Dewey's Pizza", "Pizza", "Dewey's Pizza", "Seasonal: Tito Santana", "Craft pizzas, big salads and calzones built your way"),
+            ("Dion's", "Pizza & subs", "Dion's", "Fresh options", "New Mexico favorite for scratch-made pizza, subs and salads")
+        ]
+        
+        allSpots = spotData.enumerated().map { index, item in
+            let topic = index < defaultTopics.count ? defaultTopics[index] : defaultTopics.first
+            return Spot(name: item.0, category: item.1, imageName: item.2, tag: item.3, description: item.4, topic: topic)
+        }
+        
+        featuredSpots = Array(allSpots.prefix(3))
+    }
+
+    private func setupNavigationBar() {
+        let titleLabel = UILabel()
+        let attributedText = NSMutableAttributedString(
+            string: "Hungry? ",
+            attributes: [.font: UIFont.boldSystemFont(ofSize: 22), .foregroundColor: Theme.textPrimary]
+        )
+        let italicText = NSAttributedString(
+            string: "Pick your spot.",
+            attributes: [.font: UIFont.italicSystemFont(ofSize: 22), .foregroundColor: Theme.primaryOrange]
+        )
+        attributedText.append(italicText)
+        titleLabel.attributedText = attributedText
+        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: titleLabel)
     }
 
     private func setupCollectionView() {
@@ -18,10 +104,11 @@ final class HomeViewController: UIViewController {
         collectionView.showsVerticalScrollIndicator = false
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.register(TestCell.self, forCellWithReuseIdentifier: TestCell.reuseID)
-        collectionView.register(SectionHeaderView.self,
-                                forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
-                                withReuseIdentifier: SectionHeaderView.reuseID)
+        
+        collectionView.register(FeaturedCardCell.self, forCellWithReuseIdentifier: FeaturedCardCell.reuseID)
+        collectionView.register(GridSpotCell.self, forCellWithReuseIdentifier: GridSpotCell.reuseID)
+        collectionView.register(SectionHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: SectionHeaderView.reuseID)
+        
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
 
@@ -34,58 +121,256 @@ final class HomeViewController: UIViewController {
     }
 
     private func makeLayout() -> UICollectionViewLayout {
-        UICollectionViewCompositionalLayout { _, _ in
-            let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1),
-                                                                heightDimension: .fractionalHeight(1)))
-            let group = NSCollectionLayoutGroup.horizontal(
-                layoutSize: .init(widthDimension: .absolute(160), heightDimension: .absolute(TestCell.height)),
-                subitems: [item]
-            )
-            let section = NSCollectionLayoutSection(group: group)
-            section.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
-            section.interGroupSpacing = 12
-            section.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 20, bottom: 20, trailing: 20)
-
-            let header = NSCollectionLayoutBoundarySupplementaryItem(
-                layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(40)),
-                elementKind: UICollectionView.elementKindSectionHeader,
-                alignment: .top
-            )
-            section.boundarySupplementaryItems = [header]
-            return section
+        return UICollectionViewCompositionalLayout { sectionIndex, _ in
+            if sectionIndex == 0 {
+                let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1)))
+                let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .absolute(240), heightDimension: .absolute(230)), subitems: [item])
+                let section = NSCollectionLayoutSection(group: group)
+                section.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
+                section.interGroupSpacing = 14
+                section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 20, trailing: 16)
+                
+                let header = NSCollectionLayoutBoundarySupplementaryItem(
+                    layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(36)),
+                    elementKind: UICollectionView.elementKindSectionHeader,
+                    alignment: .top
+                )
+                section.boundarySupplementaryItems = [header]
+                return section
+            } else {
+                let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(0.5), heightDimension: .estimated(260)))
+                item.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 6, bottom: 6, trailing: 6)
+                
+                let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .estimated(260)), subitems: [item, item])
+                let section = NSCollectionLayoutSection(group: group)
+                section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 20, trailing: 10)
+                return section
+            }
         }
     }
 }
 
 // MARK: - DataSource & Delegate
 extension HomeViewController: UICollectionViewDataSource, UICollectionViewDelegate {
-
-    func numberOfSections(in collectionView: UICollectionView) -> Int { sections.count }
+    func numberOfSections(in collectionView: UICollectionView) -> Int { 2 }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        sections[section].topics.count
+        return section == 0 ? featuredSpots.count : allSpots.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TestCell.reuseID, for: indexPath) as! TestCell
-        cell.configure(with: sections[indexPath.section].topics[indexPath.item])
-        return cell
+        if indexPath.section == 0 {
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: FeaturedCardCell.reuseID, for: indexPath) as! FeaturedCardCell
+            cell.configure(with: featuredSpots[indexPath.item])
+            return cell
+        } else {
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: GridSpotCell.reuseID, for: indexPath) as! GridSpotCell
+            cell.configure(with: allSpots[indexPath.item])
+            return cell
+        }
     }
 
-    func collectionView(_ collectionView: UICollectionView,
-                        viewForSupplementaryElementOfKind kind: String,
-                        at indexPath: IndexPath) -> UICollectionReusableView {
-        let header = collectionView.dequeueReusableSupplementaryView(
-            ofKind: kind, withReuseIdentifier: SectionHeaderView.reuseID, for: indexPath
-        ) as! SectionHeaderView
-        header.configure(title: sections[indexPath.section].title)
+    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: SectionHeaderView.reuseID, for: indexPath) as! SectionHeaderView
+        header.configure(title: "Tonight's picks")
         return header
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let topic = sections[indexPath.section].topics[indexPath.item]
-        let vc = QuizViewController(topic: topic)
-        vc.hidesBottomBarWhenPushed = true
-        navigationController?.pushViewController(vc, animated: true)
+        let spot = indexPath.section == 0 ? featuredSpots[indexPath.item] : allSpots[indexPath.item]
+        if let topic = spot.topic {
+            let vc = QuizViewController(topic: topic)
+            vc.hidesBottomBarWhenPushed = true
+            navigationController?.pushViewController(vc, animated: true)
+        }
+    }
+}
+
+// MARK: - Custom Cells
+final class FeaturedCardCell: UICollectionViewCell {
+    static let reuseID = "FeaturedCardCell"
+    
+    private let imageView = UIImageView()
+    private let titleLabel = UILabel()
+    private let categoryLabel = UILabel()
+    private let orderButton = UIButton(type: .system)
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        contentView.backgroundColor = UIColor(red: 0.98, green: 0.88, blue: 0.82, alpha: 1.0)
+        contentView.layer.cornerRadius = 16
+        contentView.clipsToBounds = true
+        setupLayout()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    private func setupLayout() {
+        imageView.contentMode = .scaleAspectFit
+        imageView.backgroundColor = .white
+        imageView.layer.cornerRadius = 12
+        imageView.clipsToBounds = true
+        
+        titleLabel.font = .boldSystemFont(ofSize: 15)
+        titleLabel.textColor = .black
+        titleLabel.numberOfLines = 1
+        
+        categoryLabel.font = .systemFont(ofSize: 12)
+        categoryLabel.textColor = .darkGray
+        categoryLabel.numberOfLines = 1
+        
+        orderButton.setTitle("Order now", for: .normal)
+        orderButton.setTitleColor(.white, for: .normal)
+        orderButton.titleLabel?.font = .systemFont(ofSize: 13, weight: .bold)
+        orderButton.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.15, alpha: 1.0)
+        orderButton.layer.cornerRadius = 18
+        orderButton.isUserInteractionEnabled = false
+        
+        [imageView, titleLabel, categoryLabel, orderButton].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            contentView.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            imageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            imageView.heightAnchor.constraint(equalToConstant: 95),
+
+            titleLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 8),
+            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+
+            categoryLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+            categoryLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            categoryLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
+
+            orderButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            orderButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            orderButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
+            orderButton.heightAnchor.constraint(equalToConstant: 36)
+        ])
+    }
+
+    func configure(with spot: Spot) {
+        imageView.image = UIImage(named: spot.imageName)
+        titleLabel.text = spot.name
+        categoryLabel.text = spot.category
+    }
+}
+
+final class GridSpotCell: UICollectionViewCell {
+    static let reuseID = "GridSpotCell"
+    
+    private let imageView = UIImageView()
+    private let titleLabel = UILabel()
+    private let categoryLabel = UILabel()
+    private let tagLabel = UILabel()
+    private let descLabel = UILabel()
+    private let orderButton = UIButton(type: .system)
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        contentView.backgroundColor = Theme.cardBackground
+        contentView.layer.cornerRadius = 16
+        contentView.clipsToBounds = true
+        setupLayout()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    private func setupLayout() {
+        imageView.contentMode = .scaleAspectFit
+        imageView.backgroundColor = .white
+        imageView.layer.cornerRadius = 10
+        imageView.clipsToBounds = true
+        
+        titleLabel.font = .boldSystemFont(ofSize: 14)
+        titleLabel.textColor = Theme.textPrimary
+        titleLabel.numberOfLines = 2
+        
+        categoryLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        categoryLabel.textColor = UIColor(red: 0.30, green: 0.85, blue: 0.40, alpha: 1.0)
+        
+        tagLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        tagLabel.textColor = Theme.tagYellow
+        tagLabel.numberOfLines = 1
+        
+        descLabel.font = .systemFont(ofSize: 11)
+        descLabel.textColor = Theme.textSecondary
+        descLabel.numberOfLines = 3
+
+        orderButton.setTitle("Order now →", for: .normal)
+        orderButton.setTitleColor(.white, for: .normal)
+        orderButton.titleLabel?.font = .systemFont(ofSize: 13, weight: .bold)
+        orderButton.backgroundColor = Theme.primaryOrange
+        orderButton.layer.cornerRadius = 10
+        orderButton.isUserInteractionEnabled = false
+
+        [imageView, titleLabel, categoryLabel, tagLabel, descLabel, orderButton].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            contentView.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            imageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            imageView.widthAnchor.constraint(equalToConstant: 44),
+            imageView.heightAnchor.constraint(equalToConstant: 44),
+
+            titleLabel.topAnchor.constraint(equalTo: imageView.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 8),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+
+            categoryLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+            categoryLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            categoryLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+
+            tagLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 8),
+            tagLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            tagLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+
+            descLabel.topAnchor.constraint(equalTo: tagLabel.bottomAnchor, constant: 4),
+            descLabel.leadingAnchor.constraint(equalTo: tagLabel.leadingAnchor),
+            descLabel.trailingAnchor.constraint(equalTo: tagLabel.trailingAnchor),
+
+            orderButton.topAnchor.constraint(equalTo: descLabel.bottomAnchor, constant: 10),
+            orderButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            orderButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            orderButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
+            orderButton.heightAnchor.constraint(equalToConstant: 34)
+        ])
+    }
+
+    func configure(with spot: Spot) {
+        imageView.image = UIImage(named: spot.imageName)
+        titleLabel.text = spot.name
+        categoryLabel.text = "\(spot.category) • Open now"
+        tagLabel.text = "🏷️ \(spot.tag)"
+        descLabel.text = spot.description
+    }
+}
+
+final class SectionHeaderView: UICollectionReusableView {
+    static let reuseID = "SectionHeaderView"
+    private let titleLabel = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        titleLabel.font = .boldSystemFont(ofSize: 18)
+        titleLabel.textColor = Theme.textPrimary
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(titleLabel)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func configure(title: String) {
+        titleLabel.text = title
     }
 }

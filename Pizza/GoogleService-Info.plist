@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>app.FoodPick.com.FoodPickTasteTest</string>
+	<string>app.Biteful.com.Biteful</string>
 	<key>PROJECT_ID</key>
 	<string>foodpick-87263</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:845081889858:ios:03b57c142d44acf05c71db</string>
+	<string>1:845081889858:ios:a399e2b3c8d153ab5c71db</string>
 </dict>
 </plist>

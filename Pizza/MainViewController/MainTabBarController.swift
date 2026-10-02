@@ -35,9 +35,9 @@ final class MainTabBarController: UITabBarController {
 
     private func setupTabs() {
         viewControllers = [
-            makeNav(HomeViewController(),    title: "Home",    symbol: "house.fill",            tag: 0),
-            makeNav(TestsViewController(),   title: "Tests",   symbol: "checkmark.seal.fill",   tag: 1),
-            makeNav(ProfileViewController(), title: "Profile", symbol: "person.crop.circle",    tag: 2)
+            makeNav(HomeViewController(),    title: "Spots",    symbol: "fork.knife.circle.fill", tag: 0),
+            makeNav(TestsViewController(),   title: "Places",  symbol: "water.waves",            tag: 1),
+            makeNav(ProfileViewController(), title: "More",   symbol: "mappin.and.ellipse",     tag: 2)
         ]
     }
 
