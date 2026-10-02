@@ -7,7 +7,7 @@ workflows:
       groups:
         - app_store_credentials
       vars:
-        BUNDLE_ID: "app.FoodPick.com.FoodPickTasteTest"
+        BUNDLE_ID: "app.Biteful.com.Biteful"
         XCODE_PROJECT: "Pizza.xcodeproj"
         XCODE_SCHEME: "Pizza"
       
